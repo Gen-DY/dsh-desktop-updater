@@ -72,6 +72,7 @@ dsh-desktop-updater/
 ├── config.json.example           本地配置样例
 ├── scripts/
 │   ├── paths.cjs                 共用路径解析（源码仓库 / feed 目录 / DSH home）
+│   ├── check-official.cjs        查官方最新版本（npm dist-tags + semver 判定）
 │   ├── preflight-env.cjs         构建环境预检（12 项）
 │   ├── prepare-build.cjs         构建前准备（幂等，5 步修补 + 1 步校验）
 │   ├── verify-compat.cjs         兼容性校验 + 诊断包（待实现）
@@ -87,6 +88,46 @@ dsh-desktop-updater/
 
 **本地 feed 目录**：`~/.dsh/desktop-updates/`（跟随 `$DSH_HOME`）。
 构建产物会投放至此，供应用内「本地构建更新」读取。
+
+---
+
+## 官方版本怎么判定
+
+界面里那个常驻的「官方版本」区块，数据来自 **npm registry 的 dist-tags**。
+实现在 `scripts/check-official.cjs`：
+
+```bat
+node scripts\check-official.cjs                          :: 当前版本自动取自源码仓库
+node scripts\check-official.cjs --json                   :: 机器可读
+node scripts\check-official.cjs --current 0.1.7-alpha.2
+node scripts\check-official.cjs --registry https://registry.npmmirror.com
+```
+
+**判定规则：不绑定任何渠道，取官方所有已发布版本里 semver 最高的那个。**
+
+```
+0.1.7-rc.1   >   0.1.7-alpha.2   >   0.1.5-rc.3
+   ↑ next           ↑ alpha           ↑ latest
+```
+
+⚠️ **不要"跟随当前构建线"。** 早先按"我构建的是 alpha，就只比 alpha 线"实现过一版，
+结果官方推进到 `0.1.7-rc.1`（渠道 `next`）后**完全漏报** —— `alpha` 这条线的最新
+还停在 `0.1.7-alpha.2`，界面会一直显示"已是最新"。
+
+**渠道是官方的发布策略，会新增、会变**（`next` 这个标签就是 2026-09-23 发 `0.1.7-rc.1`
+时才出现的），**semver 才是客观顺序**。所以也不要把渠道列表写死。
+
+判定结果是**四态**，不是布尔：
+
+| relation | 含义 |
+|---|---|
+| `outdated` | 官方有更新（当前落后） |
+| `current` | 与官方 semver 最高相同 |
+| `ahead` | 当前比官方还新（本地改过版本号，或官方回退了渠道指向） |
+| `unknown` | 当前版本不是合法 semver，无法比较 |
+
+> 「已是最新」和「比官方还新」必须分开 —— 用一个布尔表达会把两者混同。
+> 这个坑是实测 `--current 0.1.7-rc.2` 时发现的。
 
 ---
 
@@ -196,7 +237,8 @@ set DSH_SOURCE_REPO=D:\codes\...    :: 源码仓库位置
 | P1 | 仓库搭建 + 旧代码整理 | ✅ |
 | P2 | unsigned 构建产出 feed | ✅ 已实测（产物含 `app-update.yml` + `nightly.yml`） |
 | P3 | 方式一端到端打通 | ✅ 产物已发布 Release 且匿名可下载（待装包点一次「检查更新」） |
-| P4 | 环境预检接入 | ⏳ |
+| P4 | 环境预检接入 | ✅ `preflight-env.cjs` 已可用（接入 UI 待 P7） |
+| P4.5 | 官方版本判定 | ✅ `check-official.cjs`（semver 四态判定，已测） |
 | P5 | 兼容性校验 + 诊断包 | ⏳ |
 | P6 | 方式二本地 feed 打通 | ⏳ |
 | P7 | 更新面板 UI | ⏳ |
