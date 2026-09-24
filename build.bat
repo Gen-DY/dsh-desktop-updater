@@ -99,16 +99,42 @@ echo.
 rem ================= [4/6] 打包 =================
 echo [4/6] 打包未签名安装包   约 20-40 分钟
 echo.
+set "ART=%REPO%\apps\desktop\.desktop-build\targets\win-x64\unsigned-artifacts"
 call pnpm run package:desktop:win:x64:unsigned
-if errorlevel 1 goto :fail
+if not errorlevel 1 goto :pack_ok
+
+rem 打包返回非 0，要区分两种情况：
+rem   (a) 冒烟验证失败但产物已生成 -> 本机几乎必然发生，产物可用，问用户
+rem   (b) 真的失败，没有 exe       -> 必须中止
+rem 同样用 goto 展开成线性结构，避开括号块内的变量延迟展开陷阱。
+if not exist "%ART%\*.exe" goto :fail
+echo.
+echo   ^>^> 打包流程返回失败，但【安装包已经生成】。
+echo.
+echo      产物目录: %ART%
+echo.
+echo      本机已知情况：打包末尾的「打包后冒烟验证」中，Office 文件转 PDF
+echo      一项必然失败（LibreOffice 被本机安全软件拦截）。已实测核实：连
+echo      已安装版的 DSH 在本机也完不成转 PDF，属环境问题，与本工具无关。
+echo.
+echo      请打开下面目录里【最新那个文件夹】的 stdout.log 确认失败项：
+echo        apps\desktop\.desktop-build\packaging-runs\
+echo      失败项若只是 Office 转 PDF，可以继续；否则请选 N 中止。
+echo.
+set /p GO2="仍要投放产物吗？(Y/N) "
+if /i not "%GO2%"=="Y" goto :fail
+echo.
+:pack_ok
 echo.
 
 rem ================= [5/6] 投放到本地 feed =================
 echo [5/6] 投放产物到本地 feed 目录（供应用内「本地构建更新」使用）
-set "ART=%REPO%\apps\desktop\.desktop-build\targets\win-x64\unsigned-artifacts"
 if not exist "%ART%\*.exe" goto :noartifact
 copy /y "%ART%\*.exe" "%FEED%\" >nul
-if exist "%ART%\*.yml" copy /y "%ART%\*.yml" "%FEED%\" >nul
+rem 只投 electron-updater 认的清单文件。不要用 *.yml 通配 ——
+rem 那会把 electron-builder 的调试产物 builder-debug.yml 也拷进来。
+if exist "%ART%\nightly.yml" copy /y "%ART%\nightly.yml" "%FEED%\" >nul
+if exist "%ART%\latest.yml" copy /y "%ART%\latest.yml" "%FEED%\" >nul
 echo   已投放: %FEED%
 dir /b "%FEED%"
 echo.
@@ -125,12 +151,19 @@ echo.
 echo 安装包目录:
 echo   %ART%
 echo.
-echo 接下来二选一：
-echo   1) 应用内点「本地构建更新」自动安装（需 P2 配置完成）
-echo   2) 直接运行 %FEED% 目录里的安装程序
+echo 接下来三选一：
+echo   1) 把 feed 里的产物发到 GitHub Release，再用应用内「检查更新」验证方式一
+echo   2) 应用内点「本地构建更新」自动安装（方式二）
+echo   3) 直接运行 %FEED% 目录里的安装程序
 echo.
+set /p GO3="现在就启动安装程序吗？(Y/N) "
+if /i not "%GO3%"=="Y" goto :no_start
 for %%F in ("%FEED%\*.exe") do start "" "%%~fF"
 echo 已尝试启动安装程序；若没弹出，请手动打开上面的目录。
+goto :start_done
+:no_start
+echo 已跳过启动安装程序。安装包在: %FEED%
+:start_done
 echo.
 echo 装好后：桌面端使用 %USERPROFILE%\.dsh\profiles\desktop
 echo 旧的 pnpm dsh web 用法不受影响，可随时回退。

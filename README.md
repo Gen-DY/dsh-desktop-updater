@@ -79,6 +79,7 @@ dsh-desktop-updater/
 ├── patches/                      内核补丁说明与锚点
 └── docs/
     ├── 安装与排障说明.md          完整安装文档与排障锚点
+    ├── 发布Release.md             产物如何发到 GitHub Release（方式一）
     ├── design/总方案.md           架构、界面信息结构、实施计划
     ├── design/内核改动清单.md      方式二的精确 diff 与校验锚点
     └── research/                 前期可行性调研（含源码级证据）
@@ -137,6 +138,7 @@ set DSH_SOURCE_REPO=D:\codes\...    :: 源码仓库位置
 | [总方案](docs/design/总方案.md) | 架构、三层界面信息结构、P0~P8 实施计划、风险清单 |
 | [内核改动清单](docs/design/内核改动清单.md) | 方式二 3 处改动的完整 diff、校验锚点、安全设计、已知限制 |
 | [安装与排障说明](docs/安装与排障说明.md) | 完整安装流程与全部排障锚点 |
+| [发布 Release](docs/发布Release.md) | 产物如何发到 GitHub Release；三个前置条件与常见失败 |
 | [研究报告](docs/research/) | 插件兼容性根因、可行性评估（含源码级证据与行号） |
 
 ---
@@ -152,14 +154,48 @@ set DSH_SOURCE_REPO=D:\codes\...    :: 源码仓库位置
 
 ---
 
+## 已知限制
+
+### 打包末尾的 Office→PDF 冒烟项，在本构建机上必然失败
+
+官方打包流程末尾有一步「打包后冒烟验证」：启动打包产物、建一个临时 profile、
+装一个测试插件，然后真实地把 docx / xlsx / pptx 转成 PDF。**在本机上这一步必然失败**：
+
+```
+{"ok":false,"code":"failed","error":"loadComponentFromURL returned an empty reference"}
+```
+
+为定位它做过的对照实验：
+
+| 检查项 | 结果 |
+|---|---|
+| 打包产物里的 LibreOffice | ✗ 同样失败 |
+| 源码仓库 `node_modules` 里的 LibreOffice | ✗ 同样失败（排除路径长度因素） |
+| **已安装版的 DSH**（日常在用那份） | **✗ 同样失败** ← 关键 |
+| VC++ 运行时 / 217 个 DLL / `swlo`·`sclo`·`sdlo` | ✓ 齐全 |
+| `share/registry` 配置（含 1.98 MB `main.xcd`） | ✓ 完整 |
+| Windows 错误报告（WER） | 无崩溃记录 |
+
+→ 结论：**这是机器的环境问题，不是构建问题**。本机装有安全软件（火绒 HIPS 常驻），
+最可能是它拦截了 LibreOffice 的初始化。**打包产物本身完整可用** ——
+其余冒烟项（Host 启动、打包后的前端加载、外部插件 HTTP 路由）全部通过。
+
+因此 `build.bat` 对这一项做了容错：打包返回失败时，**先检查产物是否已生成**——
+有产物就问你要不要继续投放，没有才中止。这不会掩盖真正的失败，
+因为"真的失败"时连 exe 都不会有。
+
+其他机器上如果冒烟项能过，这条限制自然不适用。
+
+---
+
 ## 开发状态
 
 | 阶段 | 内容 | 状态 |
 |---|---|---|
 | P0 | UI 确认 | ✅ |
 | P1 | 仓库搭建 + 旧代码整理 | ✅ |
-| P2 | unsigned 构建产出 feed | ✅ 机制完成（待一次完整构建实测） |
-| P3 | 方式一端到端打通 | ⏳ |
+| P2 | unsigned 构建产出 feed | ✅ 已实测（产物含 `app-update.yml` + `nightly.yml`） |
+| P3 | 方式一端到端打通 | ✅ 产物已发布 Release 且匿名可下载（待装包点一次「检查更新」） |
 | P4 | 环境预检接入 | ⏳ |
 | P5 | 兼容性校验 + 诊断包 | ⏳ |
 | P6 | 方式二本地 feed 打通 | ⏳ |
