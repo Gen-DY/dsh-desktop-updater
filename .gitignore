@@ -1,0 +1,19 @@
+# 本地配置：含本机路径，不入库
+config.json
+
+# Node
+node_modules/
+npm-debug.log*
+
+# 构建产物：通过 Release 分发，不入库
+*.exe
+*.zip
+*.blockmap
+nightly.yml
+latest.yml
+
+# 临时与系统文件
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
