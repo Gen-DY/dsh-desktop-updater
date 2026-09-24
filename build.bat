@@ -40,19 +40,22 @@ echo [1/6] 环境预检   校验工具链 / 磁盘 / 源码工作区
 echo.
 node "%TOOL%scripts\preflight-env.cjs" "%REPO%"
 set "PRC=%errorlevel%"
-if "%PRC%"=="1" (
-  echo.
-  echo   ^>^> 预检存在【阻断项】。现在构建很可能白跑 30-60 分钟。
-  echo.
-  set /p GO="仍要继续吗？(Y/N) "
-  if /i not "%GO%"=="Y" goto :fail
-)
-if "%PRC%"=="2" (
-  echo   ^>^> 预检未能完成（当前会话无法派生子进程，通常是杀软拦截或受限会话）。
-  echo      这不代表构建环境有问题 —— 继续构建。
-  echo      若构建失败，请改用普通命令行窗口重跑本脚本。
-  echo.
-)
+rem 注意：这里刻意不用 if (... ) 括号块。括号块内的 %GO% 会在块开始解析时就展开，
+rem 而 set /p 是在块执行时才赋值的 —— 那会让判断永远成立，直接跳去失败分支。
+rem 用 goto 展开成线性结构，避开批处理的变量延迟展开陷阱。
+if not "%PRC%"=="1" goto :pf_block2
+echo.
+echo   ^>^> 预检存在【阻断项】。现在构建很可能白跑 30-60 分钟。
+echo.
+set /p GO="仍要继续吗？(Y/N) "
+if /i not "%GO%"=="Y" goto :fail
+:pf_block2
+if not "%PRC%"=="2" goto :pf_done
+echo   ^>^> 预检未能完成（当前会话不能派生子进程，通常是杀软拦截或受限会话）。
+echo      这不代表构建环境有问题 - 继续构建。
+echo      若构建失败，请改用普通命令行窗口重跑本脚本。
+echo.
+:pf_done
 echo.
 
 rem ================= [2/6] 构建前准备 =================
