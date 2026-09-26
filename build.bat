@@ -13,13 +13,17 @@ echo  Windows x64 / Î´Ç©Ãû
 echo ============================================================
 echo.
 
-rem ================= [0/6] ½âÎöÂ·¾¶ =================
-echo [0/6] ½âÎöÂ·¾¶
+rem ================= [0/7] ½âÎöÂ·¾¶ =================
+echo [0/7] ½âÎöÂ·¾¶
 for /f "usebackq delims=" %%p in (`node "%TOOL%scripts\paths.cjs" repo`) do set "REPO=%%p"
 for /f "usebackq delims=" %%p in (`node "%TOOL%scripts\paths.cjs" feed`) do set "FEED=%%p"
 if not exist "%REPO%\package.json" goto :norepo
 if not exist "%FEED%" mkdir "%FEED%" >nul 2>nul
+rem ±¾´ÎÒª¹¹½¨µÄ°æ±¾ºÅ ¡ª¡ª ºóÃæĞ£Ñé²úÎï¡¢Í¶·Å²úÎï¶¼¿¿Ëü¾«È·Æ¥ÅäÎÄ¼şÃû
+for /f "usebackq delims=" %%p in (`node "%TOOL%scripts\paths.cjs" version`) do set "VER=%%p"
+if not defined VER goto :nover
 echo   Ô´Âë²Ö¿â: %REPO%
+echo   ±¾´Î°æ±¾: %VER%
 echo    feed Ä¿Â¼: %FEED%
 
 rem ---- ×ÔÍĞ¹Ü¸üĞÂÔ´£¨unsigned ¹¹½¨µÄ feed µØÖ·£©£»Áô¿ÕÔò²»Éú³É app-update.yml ----
@@ -35,8 +39,8 @@ echo.
 
 cd /d "%REPO%"
 
-rem ================= [1/6] »·¾³Ô¤¼ì =================
-echo [1/6] »·¾³Ô¤¼ì   Ğ£Ñé¹¤¾ßÁ´ / ´ÅÅÌ / Ô´Âë¹¤×÷Çø
+rem ================= [1/7] »·¾³Ô¤¼ì =================
+echo [1/7] »·¾³Ô¤¼ì   Ğ£Ñé¹¤¾ßÁ´ / ´ÅÅÌ / Ô´Âë¹¤×÷Çø
 echo.
 node "%TOOL%scripts\preflight-env.cjs" "%REPO%"
 set "PRC=%errorlevel%"
@@ -58,8 +62,8 @@ echo.
 :pf_done
 echo.
 
-rem ================= [2/6] ¹¹½¨Ç°×¼±¸ =================
-echo [2/6] ¹¹½¨Ç°×¼±¸   SDK²¹¶¡ / Çå²ĞÁô / Çå»µÁ´½Ó / ¸üĞÂÍ¨µÀ / Ğ£Ñé¿ÇÒ³ÃæĞ­Òé
+rem ================= [2/7] ¹¹½¨Ç°×¼±¸ =================
+echo [2/7] ¹¹½¨Ç°×¼±¸   SDK²¹¶¡ / Çå²ĞÁô / Çå»µÁ´½Ó / ¸üĞÂÍ¨µÀ / Ğ£Ñé¿ÇÒ³ÃæĞ­Òé
 echo.
 node "%TOOL%scripts\prepare-build.cjs" "%REPO%"
 if errorlevel 1 goto :fail
@@ -80,7 +84,7 @@ echo         ÒÑÉèÖÃÕ¼Î» commit hash£¬¹¹½¨ÕÕ³£½øĞĞ£¨½ö¹¹½¨ĞÅÏ¢ÀïµÄ°æ±¾ºÅ»áÏÔÊ¾ÎªÕ
 :gitok
 echo.
 
-rem ================= [3/6] °²×°ÒÀÀµ =================
+rem ================= [3/7] °²×°ÒÀÀµ =================
 if not exist "apps\desktop\.env.windows" copy /y "apps\desktop\.env.windows.example" "apps\desktop\.env.windows" >nul
 
 set "npm_config_registry=https://registry.npmjs.org"
@@ -90,14 +94,25 @@ set "ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/"
 set "ELECTRON_BUILDER_BINARIES_MIRROR=https://npmmirror.com/mirrors/electron-builder-binaries/"
 if exist "D:\Program Files\Python313\python.exe" set "PYTHON=D:\Program Files\Python313\python.exe"
 
-echo [3/6] pnpm install --force   ÖØ½¨ node_modules£¬Ê×´ÎÔ¼ 10-30 ·ÖÖÓ
+echo [3/7] pnpm install --force   ÖØ½¨ node_modules£¬Ê×´ÎÔ¼ 10-30 ·ÖÖÓ
 echo.
 call pnpm install --force
 if errorlevel 1 goto :fail
 echo.
 
-rem ================= [4/6] ´ò°ü =================
-echo [4/6] ´ò°üÎ´Ç©Ãû°²×°°ü   Ô¼ 20-40 ·ÖÖÓ
+rem ================= [4/7] ¹¹½¨ =================
+rem ÕâÒ»²½²»ÄÜÊ¡¡£´ò°ü½Å±¾(package-target.ts)ÔÚ¡¾Ä£¿é¼ÓÔØ½×¶Î¡¿¾Í»á import
+rem   @deepseek-ai/node-addon-system/lib/flock.js
+rem ¶øÄÇ¸ö lib/ ÊÇ tsc µÄÊä³ö¡£Ô´ÂëÉı¼¶Ê± lib/ ±»ÇåµôµÄ»°£¬´ò°ü»áÖ±½Ó
+rem ERR_MODULE_NOT_FOUND ¡ª¡ª µäĞÍµÄÏÈÓĞ¼¦»¹ÊÇÏÈÓĞµ°¡£
+echo [4/7] ¹¹½¨   È«Á¿±àÒë£¨native-system + lib£©  Ê×´ÎÔ¼ 10-25 ·ÖÖÓ
+echo.
+call pnpm run build
+if errorlevel 1 goto :fail
+echo.
+
+rem ================= [5/7] ´ò°ü =================
+echo [5/7] ´ò°üÎ´Ç©Ãû°²×°°ü   Ô¼ 20-40 ·ÖÖÓ
 echo.
 set "ART=%REPO%\apps\desktop\.desktop-build\targets\win-x64\unsigned-artifacts"
 call pnpm run package:desktop:win:x64:unsigned
@@ -107,7 +122,9 @@ rem ´ò°ü·µ»Ø·Ç 0£¬ÒªÇø·ÖÁ½ÖÖÇé¿ö£º
 rem   (a) Ã°ÑÌÑéÖ¤Ê§°Üµ«²úÎïÒÑÉú³É -> ±¾»ú¼¸ºõ±ØÈ»·¢Éú£¬²úÎï¿ÉÓÃ£¬ÎÊÓÃ»§
 rem   (b) ÕæµÄÊ§°Ü£¬Ã»ÓĞ exe       -> ±ØĞëÖĞÖ¹
 rem Í¬ÑùÓÃ goto Õ¹¿ª³ÉÏßĞÔ½á¹¹£¬±Ü¿ªÀ¨ºÅ¿éÄÚµÄ±äÁ¿ÑÓ³ÙÕ¹¿ªÏİÚå¡£
-if not exist "%ART%\*.exe" goto :fail
+rem ±ØĞë°´¡¾±¾´Î°æ±¾ºÅ¡¿¾«È·Æ¥Åä¡£Ö»¿´ *.exe »á°ÑÉÏ´Î¹¹½¨²ĞÁôµÄ¾É°æ±¾
+rem ÎóÅĞ³É¡¸±¾´Î²úÎïÒÑÉú³É¡¹¡ª¡ª Éı¼¶µ½ rc.1 ÄÇ´ÎÕæµÄ²Èµ½ÁË£¨²îµã°Ñ alpha.2 µÄ°üµ±³É¹¦£©¡£
+if not exist "%ART%\deepseek-harness-%VER%-win-x64-unsigned.exe" goto :fail
 echo.
 echo   ^>^> ´ò°üÁ÷³Ì·µ»ØÊ§°Ü£¬µ«¡¾°²×°°üÒÑ¾­Éú³É¡¿¡£
 echo.
@@ -127,10 +144,10 @@ echo.
 :pack_ok
 echo.
 
-rem ================= [5/6] Í¶·Åµ½±¾µØ feed =================
-echo [5/6] Í¶·Å²úÎïµ½±¾µØ feed Ä¿Â¼£¨¹©Ó¦ÓÃÄÚ¡¸±¾µØ¹¹½¨¸üĞÂ¡¹Ê¹ÓÃ£©
-if not exist "%ART%\*.exe" goto :noartifact
-copy /y "%ART%\*.exe" "%FEED%\" >nul
+rem ================= [6/7] Í¶·Åµ½±¾µØ feed =================
+echo [6/7] Í¶·Å²úÎïµ½±¾µØ feed Ä¿Â¼£¨¹©Ó¦ÓÃÄÚ¡¸±¾µØ¹¹½¨¸üĞÂ¡¹Ê¹ÓÃ£©
+if not exist "%ART%\deepseek-harness-%VER%-win-x64-unsigned.exe" goto :noartifact
+copy /y "%ART%\deepseek-harness-%VER%-win-x64-unsigned.exe" "%FEED%\" >nul
 rem Ö»Í¶ electron-updater ÈÏµÄÇåµ¥ÎÄ¼ş¡£²»ÒªÓÃ *.yml Í¨Åä ¡ª¡ª
 rem ÄÇ»á°Ñ electron-builder µÄµ÷ÊÔ²úÎï builder-debug.yml Ò²¿½½øÀ´¡£
 if exist "%ART%\nightly.yml" copy /y "%ART%\nightly.yml" "%FEED%\" >nul
@@ -145,8 +162,8 @@ if not exist "%FEED%\nightly.yml" (
   echo.
 )
 
-rem ================= [6/6] Íê³É =================
-echo [6/6] Íê³É
+rem ================= [7/7] Íê³É =================
+echo [7/7] Íê³É
 echo.
 echo °²×°°üÄ¿Â¼:
 echo   %ART%
@@ -171,6 +188,13 @@ echo.
 pause
 exit /b 0
 
+:nover
+echo [´íÎó] ¶Á²»µ½Ô´Âë²Ö¿âµÄ°æ±¾ºÅ£¨package.json µÄ version£©
+echo        µ±Ç°½âÎö½á¹û: %REPO%
+echo        ÇëÈ·ÈÏÔ´Âë²Ö¿âÍêÕû£¬»òÓÃ build.bat ^<Ô´Âë²Ö¿âÂ·¾¶^> Ö¸¶¨
+pause
+exit /b 1
+
 :norepo
 echo [´íÎó] Ô´Âë²Ö¿âÂ·¾¶ÎŞĞ§»òÈ±ÉÙ package.json
 echo        µ±Ç°½âÎö½á¹û: %REPO%
@@ -181,7 +205,7 @@ pause
 exit /b 1
 
 :noartifact
-echo [´íÎó] Î´ÕÒµ½¹¹½¨²úÎï: %ART%\*.exe
+echo [´íÎó] Î´ÕÒµ½±¾´Î°æ±¾µÄ¹¹½¨²úÎï: deepseek-harness-%VER%-win-x64-unsigned.exe
 pause
 exit /b 1
 

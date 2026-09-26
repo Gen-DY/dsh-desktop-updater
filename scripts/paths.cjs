@@ -83,14 +83,31 @@ module.exports = {
   resolveDshHome, localFeedDirectory, resolveSourceRepo, resolveSelfUpdateUrl,
 }
 
+/**
+ * 源码仓库当前的版本号（读它的 package.json）。
+ *
+ * 为什么需要：产物校验不能只看「产物目录里有没有 exe」—— 那会把**上次构建残留的旧版本**
+ * 误判成「本次产物已生成」。必须先取到本次要构建的版本号，再精确匹配文件名。
+ * @returns {string} 版本号；读不到时返回空串。
+ */
+function sourceVersion () {
+  try {
+    const { repo } = resolveSourceRepo()
+    return JSON.parse(fs.readFileSync(path.join(repo, 'package.json'), 'utf8')).version ?? ''
+  } catch {
+    return ''
+  }
+}
+
 if (require.main === module) {
   const what = process.argv[2]
   if (what === 'repo') console.log(resolveSourceRepo(process.argv[3]).repo)
   else if (what === 'feed') console.log(localFeedDirectory())
   else if (what === 'home') console.log(resolveDshHome())
   else if (what === 'feedurl') console.log(resolveSelfUpdateUrl())
+  else if (what === 'version') console.log(sourceVersion())
   else {
-    console.log('用法: node paths.cjs repo [源码路径] | feed | home | feedurl')
+    console.log('用法: node paths.cjs repo [源码路径] | feed | home | feedurl | version')
     process.exit(1)
   }
 }
