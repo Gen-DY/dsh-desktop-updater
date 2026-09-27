@@ -73,7 +73,8 @@ dsh-desktop-updater/
 ├── scripts/
 │   ├── paths.cjs                 共用路径解析（源码仓库 / feed 目录 / DSH home）
 │   ├── check-official.cjs        查官方最新版本（npm dist-tags + semver 判定）
-│   ├── preflight-env.cjs         构建环境预检（12 项）
+│   ├── preflight-env.cjs         构建环境预检（13 项）
+│   ├── hold-blocked-ports.cjs    占住 Node fetch 封禁端口（规避冒烟验证 bad port）
 │   ├── prepare-build.cjs         构建前准备（幂等，5 步修补 + 1 步校验）
 │   ├── verify-compat.cjs         兼容性校验 + 诊断包（待实现）
 │   └── serve-feed.cjs            本地 feed 服务（待实现）
@@ -197,6 +198,43 @@ set DSH_NPM_REGISTRY=https://registry.npmjs.org  :: npm 源（默认 npmmirror�
 ---
 
 ## 已知限制
+
+### 冒烟验证会随机撞上 Node fetch 的「封禁端口」（已内置规避）
+
+打包末尾的冒烟验证（`smoke-runtime.ts`）会起一个本地 web 服务
+（`host: 127.0.0.1, port: 0` —— 让系统随机分配端口），再用 **Node 内置 fetch** 请求它。
+但 undici（Node 的 fetch 实现）有一份**封禁端口黑名单**（PPTP / H323 / NFS 等协议端口），
+对名单里的端口直接抛：
+
+```
+TypeError: fetch failed
+  cause: bad port
+```
+
+请求**根本发不出去**，冒烟失败、整个产物作废。
+
+**本机尤其容易撞上**：动态端口范围被某个"优化"工具改成了 **1024~15000**
+（Windows 默认是 `49152~65535`），与黑名单的重叠面大了许多。
+
+实测（本机 Node v22.22.2）：
+
+| 端口 | fetch 的结果 |
+|---|---|
+| 1719 / 1720 / **1723** / 6666 / 10080 | `fetch failed` + **`bad port`** ← 封禁 |
+| 17321 / 49153 | `ECONNREFUSED`（合法端口，只是没服务） |
+
+2026-09-27 就撞上 **1723** 白失败了一次 —— 而且那次其它环节**全部通过**，
+包括此前一直失败的 Office→PDF。
+
+**已内置规避**：`build.bat` 在打包前用 `scripts/hold-blocked-ports.cjs`
+把这些端口先 `listen` 起来 —— 系统的 `listen(0)` 选端口时会跳过已占用的，
+自然分不到黑名单里的端口。**不修改官方任何代码**；占端口进程 120 分钟后自动退出
+（`DSH_HOLD_PORTS_MINUTES` 可调）。
+
+实测：占住 19 个端口后，`listen(0)` 连续分配 60 次，**0 次**落入封禁区间。
+
+> 想从根上解决，可以把动态端口范围改回默认（**需要管理员**）：
+> `netsh int ipv4 set dynamicport tcp start=49152 num=16384`
 
 ### npm 源太慢会让 LibreOffice 引擎"下载失败"（已内置规避）
 

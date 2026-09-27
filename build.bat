@@ -123,6 +123,18 @@ call pnpm run build
 if errorlevel 1 goto :fail
 echo.
 
+rem ---- 占住 Node fetch（undici）封禁的端口 ----
+rem 打包末尾的冒烟验证会起一个本地 web 服务（host 127.0.0.1 + port 0，
+rem 让系统随机分配端口），再用 Node 内置 fetch 请求它。但 undici 有一份
+rem 「封禁端口」黑名单（PPTP/H323/NFS 等协议端口），对名单里的端口直接抛
+rem   TypeError: fetch failed / cause: bad port
+rem 请求根本发不出去，冒烟失败、整个产物作废。
+rem 本机动态端口范围被改成了 1024~15000（Windows 默认 49152~65535），
+rem 与黑名单重叠更大 —— 2026-09-27 就撞上 1723 白白失败了一次。
+rem 先把这些端口 listen 起来，系统的 listen(0) 自然会跳过它们。
+rem 本脚本不修改官方任何代码；占端口进程 120 分钟后自动退出。
+start "" /b node "%TOOL%scripts\hold-blocked-ports.cjs" >"%TEMP%\dsh-hold-ports.log" 2>&1
+
 rem ================= [5/7] 打包 =================
 echo [5/7] 打包未签名安装包   约 20-40 分钟
 echo.
