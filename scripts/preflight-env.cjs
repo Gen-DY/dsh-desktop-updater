@@ -248,7 +248,48 @@ async function main () {
     else add(OK, 'pnpm store', store)
   }
 
-  // ---- 10. 代理（本机特定，可删）------------------------------------------
+  // ---- 10. npm 源速度（决定大包能否下完）---------------------------------
+  // 本机踩过的真实坑：官方 registry 实测约 0.2 MB/s，68 MB 的 LibreOffice 引擎
+  // 要下 5 分钟以上，pnpm 中途超时报 error (23)；而它是 optionalDependency，
+  // pnpm 静默跳过不报错，最终表现成：
+  //   Error: desktop runtime: missing required LibreOffice engine win32-x64
+  // 报错信息完全不提"下载慢"，极难定位。所以这里实下 2 MB 测吞吐。
+  // 与第 12 项 tar 同一思路：实跑真实行为，不只看端点是否可达。
+  {
+    const registry = (process.env.DSH_NPM_REGISTRY
+      || process.env.DSH_DESKTOP_NPM_REGISTRY
+      || 'https://registry.npmjs.org').replace(/\/+$/, '')
+    const probe = `${registry}/@deepseek-ai/libreoffice-kit-win32-x64/-/libreoffice-kit-win32-x64-0.1.2.tgz`
+    const BYTES = 2 * 1024 * 1024
+    const MB = 1024 * 1024
+    const tip = '改用国内源：set DSH_NPM_REGISTRY=https://registry.npmmirror.com 再跑本脚本'
+    try {
+      const started = Date.now()
+      const response = await fetch(probe, {
+        headers: { Range: `bytes=0-${BYTES - 1}` },
+        signal: AbortSignal.timeout(45_000),
+      })
+      if (response.status !== 200 && response.status !== 206) {
+        add(WARN, 'npm 源速度', `${registry} 返回 HTTP ${response.status}`, tip)
+      } else {
+        const bytes = (await response.arrayBuffer()).byteLength
+        const speed = bytes / ((Date.now() - started) / 1000) / MB
+        if (speed < 0.3) {
+          add(FAIL, 'npm 源速度',
+            `${registry} · ${speed.toFixed(2)} MB/s（68 MB 的引擎约要 ${(68 / speed / 60).toFixed(1)} 分钟）`, tip)
+        } else if (speed < 1) {
+          add(WARN, 'npm 源速度', `${registry} · ${speed.toFixed(2)} MB/s（偏慢，大包有超时风险）`, tip)
+        } else {
+          add(OK, 'npm 源速度', `${registry} · ${speed.toFixed(2)} MB/s`)
+        }
+      }
+    } catch (error) {
+      add(WARN, 'npm 源速度', `探测失败：${String(error.message).slice(0, 70)}`,
+        '网络受限时可能误报；若构建报 missing LibreOffice engine，请优先排查源速度')
+    }
+  }
+
+  // ---- 11. 代理（本机特定，可删）------------------------------------------
   {
     const ports = [17890, 9260]
     const open = []
@@ -257,7 +298,7 @@ async function main () {
     else add(WARN, '代理', '127.0.0.1:17890 未监听', '拉取/推送 GitHub 需要它；直连会超时')
   }
 
-  // ---- 11. tar 行为（照官方做法：实跑，不只看命令是否存在）------------------
+  // ---- 12. tar 行为（照官方做法：实跑，不只看命令是否存在）------------------
   {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'dsh-tar-probe-'))
     try {
@@ -279,7 +320,7 @@ async function main () {
     }
   }
 
-  // ---- 12. 管理员权限 ---------------------------------------------------
+  // ---- 13. 管理员权限 ---------------------------------------------------
   // VS / Windows SDK 的安装必须管理员；构建本身不需要
   {
     // powershell.exe 是真正的 PE 可执行文件，用绝对名直调即可，无需过 shell

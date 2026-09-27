@@ -156,6 +156,7 @@ node scripts\check-official.cjs --registry https://registry.npmmirror.com
 ```bat
 set DSH_PREFLIGHT_MIN_FREE_GB=10    :: 磁盘空间的阻断阈值（默认 15 GB）
 set DSH_SOURCE_REPO=D:\codes\...    :: 源码仓库位置
+set DSH_NPM_REGISTRY=https://registry.npmjs.org  :: npm 源（默认 npmmirror，见「已知限制」）
 ```
 
 **退出码**：
@@ -196,6 +197,42 @@ set DSH_SOURCE_REPO=D:\codes\...    :: 源码仓库位置
 ---
 
 ## 已知限制
+
+### npm 源太慢会让 LibreOffice 引擎"下载失败"（已内置规避）
+
+构建时若碰到这个错，**根因几乎一定是 npm 源太慢，而不是源码或工具链有问题**：
+
+```
+Error: desktop runtime: missing required LibreOffice engine win32-x64
+```
+
+链路已经在源码里逐行核实过：
+
+1. `@deepseek-ai/dsh-office-to-pdf` 声明 `"@deepseek-ai/libreoffice-kit": "^0.1.0"`
+2. 打包时的临时运行时 install 会**重新解析**这个 range（`pnpm install --lockfile-only`），
+   拿到当时最新的 `0.1.2` —— 而**不是**工作区 lockfile 里钉住的 `0.1.0`
+3. 这个包 tarball 有 **68 MB**，且装在一个**全新的空 store**（`mkdtemp` 出来的临时目录，
+   用不上你已经攒下的 pnpm 缓存），必须现下
+4. 官方 registry 在本机实测只有 **0.07~0.22 MB/s** → 68 MB 要下 5~15 分钟
+5. pnpm 中途超时，报 `error (23)`
+6. **而它是 optionalDependency** —— pnpm 静默跳过，install 照样显示 `Done`
+7. 直到后面检查引擎时才报错，**错误信息完全不提「下载慢」**
+
+实测对照：
+
+| 源 | 实测速度 | 下完 68 MB |
+|---|---|---|
+| `registry.npmjs.org`（含走代理） | 0.07~0.22 MB/s | 5~15 分钟 → pnpm 中途超时 |
+| **`registry.npmmirror.com`** | **1.6~4.6 MB/s** | **15 秒** |
+
+**已内置规避**：`build.bat` 默认把两个 npm 源变量都指向 npmmirror
+（`npm_config_registry` 给根 install，`DSH_DESKTOP_NPM_REGISTRY` 给打包内部的临时 install），
+且已校验两边的包 **integrity 与官方逐字一致**。
+
+预检里也加了「**npm 源速度**」一项：实下 2 MB 测吞吐，低于 0.3 MB/s 直接判为阻断。
+（这次就是靠它提前发现，而不是白跑 40 分钟才看到「缺引擎」。）
+
+要换回官方源：`set DSH_NPM_REGISTRY=https://registry.npmjs.org` 再跑。
 
 ### 打包末尾的 Office→PDF 冒烟项，在本构建机上必然失败
 

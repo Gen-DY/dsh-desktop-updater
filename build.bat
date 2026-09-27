@@ -39,6 +39,18 @@ echo.
 
 cd /d "%REPO%"
 
+rem ---- npm 源（必须提前设：预检里的「npm 源速度」探针要读 DSH_NPM_REGISTRY）----
+rem 官方 registry 在本机实测只有 ~200 KB/s：68 MB 的 LibreOffice 引擎要下 5 分钟以上，
+rem pnpm 会中途超时并报 error (23)；而该包是 optionalDependency，pnpm 静默跳过不报错，
+rem 最终表现成 "desktop runtime: missing required LibreOffice engine win32-x64"
+rem —— 报错信息完全不提「下载慢」，极难定位。
+rem npmmirror 实测 4.6 MB/s，且包内容与官方 integrity 逐字一致（已校验）。
+rem 想换回官方源：先 set DSH_NPM_REGISTRY=https://registry.npmjs.org 再跑本脚本。
+if not defined DSH_NPM_REGISTRY set "DSH_NPM_REGISTRY=https://registry.npmmirror.com"
+rem 打包流程内部的临时运行时 install 走另一个变量名（resolveNpmRegistry 读它；
+rem 只接受 HTTPS origin，不能带 path 或凭据）。
+set "DSH_DESKTOP_NPM_REGISTRY=%DSH_NPM_REGISTRY%"
+
 rem ================= [1/7] 环境预检 =================
 echo [1/7] 环境预检   校验工具链 / 磁盘 / 源码工作区
 echo.
@@ -87,7 +99,7 @@ echo.
 rem ================= [3/7] 安装依赖 =================
 if not exist "apps\desktop\.env.windows" copy /y "apps\desktop\.env.windows.example" "apps\desktop\.env.windows" >nul
 
-set "npm_config_registry=https://registry.npmjs.org"
+set "npm_config_registry=%DSH_NPM_REGISTRY%"
 set "npm_config_trust_lockfile=true"
 set "npm_config_confirm_modules_purge=false"
 set "ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/"
