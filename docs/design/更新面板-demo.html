@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>软件更新 — UI 草案 v2</title>
+<style>
+:root{
+  --ink:#0f1115; --ink-2:#5b6472; --ink-3:#8b93a1;
+  --line:#e4e6ea; --line-2:#eff0f3;
+  --bg:#f4f5f7; --card:#fff; --soft:#f5f5f5;
+  --accent:#4d6bfe;
+  --ok:#0f6e56; --ok-bg:#e1f5ee;
+  --warn:#8a5410; --warn-bg:#faeeda;
+  --fail:#a32d2d; --fail-bg:#fcebeb;
+  --r:14px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--ink);
+  font:14px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:780px;margin:0 auto;padding:36px 24px 64px}
+.hd h1{margin:0 0 4px;font-size:21px;font-weight:600;letter-spacing:-.2px}
+.hd p{margin:0;color:var(--ink-2);font-size:13px}
+.hd code{font-family:ui-monospace,Consolas,monospace;font-size:12.5px;background:var(--line-2);padding:1px 6px;border-radius:5px;color:var(--ink)}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px 20px;margin-bottom:14px}
+.card.hero{border-color:#d8dbe0;box-shadow:0 1px 2px rgba(16,24,40,.04)}
+.card-hd{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:2px}
+.card h3{margin:0;font-size:14px;font-weight:600}
+.card .sub{margin:2px 0 14px;font-size:12.5px;color:var(--ink-2)}
+.row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 0;border-top:1px solid var(--line-2);font-size:13.5px}
+.row:first-of-type{border-top:0}
+.row .k{color:var(--ink-2);flex:none}
+.row .v{font-weight:500;text-align:right}
+.row .v.mono{font-family:ui-monospace,Consolas,monospace;font-size:12.5px;font-weight:400;color:var(--ink-2)}
+.pill{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;margin-left:6px;vertical-align:1px;white-space:nowrap}
+.pill.new{background:var(--ok-bg);color:var(--ok)}
+.pill.same{background:var(--line-2);color:var(--ink-2)}
+.pill.behind{background:var(--warn-bg);color:var(--warn)}
+.pill.block{background:var(--fail-bg);color:var(--fail)}
+
+.modes{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:22px 0 16px}
+.mode{text-align:left;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;cursor:pointer;font:inherit;color:inherit;transition:border-color .12s,box-shadow .12s}
+.mode:hover{border-color:#cfd4dc}
+.mode.on{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink) inset}
+.mode b{display:block;font-size:14px;font-weight:600;margin-bottom:3px}
+.mode span{display:block;font-size:12.5px;color:var(--ink-2);line-height:1.45}
+.mode .tag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:20px;background:var(--ok-bg);color:var(--ok);margin-left:6px;vertical-align:1px;font-weight:600}
+.mode .tag.amber{background:var(--warn-bg);color:var(--warn)}
+
+.btn{min-height:38px;padding:8px 16px;border:0;border-radius:10px;font:inherit;font-size:13.5px;font-weight:500;cursor:pointer;transition:filter .12s}
+.btn:hover:not(:disabled){filter:brightness(.95)}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.primary{background:var(--ink);color:#fff}
+.btn.ghost{background:var(--soft);color:inherit}
+.btn.sm{min-height:30px;padding:4px 12px;font-size:12.5px;border-radius:8px}
+.actions{display:flex;gap:8px;margin-top:4px}
+.hint{font-size:12.5px;color:var(--ink-3);margin-top:10px;line-height:1.55}
+.callout{display:flex;gap:10px;padding:11px 14px;border-radius:10px;background:var(--warn-bg);color:var(--warn);font-size:13px;line-height:1.55;margin-top:12px}
+.callout .dot{flex:none;width:7px;height:7px;border-radius:50%;background:#ef9f27;margin-top:7px}
+
+.checks{list-style:none;margin:0;padding:0}
+.checks li{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-top:1px solid var(--line-2);font-size:13.5px}
+.checks li:first-child{border-top:0}
+.dot{flex:none;width:7px;height:7px;border-radius:50%;margin-top:7px}
+.dot.ok{background:#1d9e75}.dot.warn{background:#ef9f27}.dot.fail{background:#e24b4a}
+.ci{flex:1;min-width:0}
+.ci .n{font-weight:500}
+.ci .d{color:var(--ink-2);font-size:12.5px;margin-top:1px}
+.ci .fix{color:var(--warn);font-size:12.5px;margin-top:1px}
+.badge{flex:none;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;white-space:nowrap}
+.badge.ok{background:var(--ok-bg);color:var(--ok)}
+.badge.warn{background:var(--warn-bg);color:var(--warn)}
+.badge.fail{background:var(--fail-bg);color:var(--fail)}
+
+.bar{height:6px;border-radius:99px;background:var(--line-2);overflow:hidden;margin:12px 0 8px}
+.bar>i{display:block;height:100%;width:0;background:var(--ink);border-radius:99px;transition:width .3s ease}
+.phase{display:flex;justify-content:space-between;font-size:12.5px;color:var(--ink-2)}
+.log{margin-top:12px;background:#fafbfc;border:1px solid var(--line-2);border-radius:10px;padding:10px 12px;max-height:132px;overflow:auto;font:12px/1.7 ui-monospace,Consolas,monospace;color:var(--ink-2);white-space:pre-wrap}
+.log .g{color:var(--ok)}.log .y{color:var(--warn)}.log .r{color:var(--fail)}
+
+details{margin-top:10px;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+summary{cursor:pointer;padding:10px 14px;font-size:13px;font-weight:500;background:#fafbfc;list-style:none}
+summary::-webkit-details-marker{display:none}
+summary::before{content:"";display:inline-block;width:0;height:0;border-left:5px solid var(--ink-3);border-top:4px solid transparent;border-bottom:4px solid transparent;margin-right:8px;vertical-align:1px;transition:transform .15s}
+details[open] summary::before{transform:rotate(90deg)}
+details pre{margin:0;padding:12px 14px;background:#fff;border-top:1px solid var(--line-2);font:11.5px/1.75 ui-monospace,Consolas,monospace;white-space:pre-wrap;color:var(--ink-2);overflow:auto;max-height:260px}
+
+.pane{display:none}.pane.on{display:block}
+.note{font-size:12px;color:var(--ink-3);text-align:center;margin-top:28px;line-height:1.7}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hd">
+    <h1>软件更新</h1>
+    <p>当前安装 <code>0.1.7-alpha.2</code> · 未签名本地构建</p>
+  </div>
+
+  <!-- ===== 常驻区块：官方版本（不随模式切换隐藏） ===== -->
+  <div class="card hero" style="margin-top:22px">
+    <div class="card-hd">
+      <h3>官方版本</h3>
+      <button class="btn ghost sm" id="o-check">检查</button>
+    </div>
+    <p class="sub">数据源 npm registry · dist-tags · 无需代理 · 判定基准 = 各渠道里 <b>semver 最高</b>的那个</p>
+    <div class="row"><span class="k">next（候选）</span><span class="v"><span id="o-next">0.1.7-rc.1</span><span class="pill new" id="o-next-pill">有更新</span></span></div>
+    <div class="row"><span class="k">alpha（内测）</span><span class="v mono">0.1.7-alpha.2</span></div>
+    <div class="row"><span class="k">latest（稳定）</span><span class="v mono">0.1.5-rc.3</span></div>
+    <div class="row"><span class="k">当前安装</span><span class="v mono">0.1.7-alpha.2</span></div>
+    <div class="hint">不绑定具体渠道。渠道是官方发布策略，会新增会变 —— <code>next</code> 这个标签就是 09-23 发 <code>0.1.7-rc.1</code> 时才出现的。按 semver：<code>rc.1 &gt; alpha.2 &gt; 0.1.5-rc.3</code>。</div>
+  </div>
+
+  <!-- ===== 方式选择 ===== -->
+  <div class="modes">
+    <button class="mode on" data-mode="shared">
+      <b>从我发布的构建更新</b>
+      <span>下载已构建好的安装包，只需网络</span>
+    </button>
+    <button class="mode" data-mode="local">
+      <b>本地构建更新<span class="tag amber">需环境</span></b>
+      <span>在本机从官方最新源码构建</span>
+    </button>
+  </div>
+
+  <!-- ===== 方式一：差别在于「我的仓库有没有包、是哪个版本」 ===== -->
+  <div class="pane on" id="pane-shared">
+    <div class="card">
+      <h3>我的仓库构建版本</h3>
+      <p class="sub">来自公开仓库 Release · 无需凭据</p>
+      <div class="row"><span class="k">仓库最新构建</span><span class="v mono">0.1.7-alpha.2</span></div>
+      <div class="row"><span class="k">与官方最新对比</span><span class="v"><span class="pill behind">落后 1 个版本</span></span></div>
+      <div class="row"><span class="k">包大小 / 通道</span><span class="v mono">298 MB · nightly</span></div>
+    </div>
+
+    <div class="callout">
+      <span class="dot"></span>
+      <div>作者尚未构建 <b>0.1.7-rc.1</b>。可以先装 0.1.7-alpha.2，或改用「本地构建」直接拿到官方最新版。</div>
+    </div>
+
+    <div class="actions" style="margin-top:14px">
+      <button class="btn primary" id="s-install">下载并安装 0.1.7-alpha.2</button>
+      <button class="btn ghost" id="s-golocal">改用本地构建</button>
+    </div>
+
+    <div class="card" id="s-prog" style="display:none;margin-top:14px">
+      <h3 id="s-prog-h">正在下载…</h3>
+      <div class="bar"><i id="s-bar"></i></div>
+      <div class="phase"><span id="s-p1">连接更新源</span><span id="s-p2">0%</span></div>
+      <div class="log" id="s-log"></div>
+    </div>
+
+    <div class="hint" style="margin-top:14px">
+      边界情况：若作者尚未发布任何构建，本方式会提示「暂无可用构建」并引导到「本地构建」。
+    </div>
+  </div>
+
+  <!-- ===== 方式二：差别在于「本地是否满足构建条件」 ===== -->
+  <div class="pane" id="pane-local">
+
+    <div class="card">
+      <h3>构建目标</h3>
+      <p class="sub">将拉取官方最新源码构建</p>
+      <div class="row"><span class="k">目标版本</span><span class="v mono">0.1.7-rc.1</span></div>
+      <div class="row"><span class="k">来源</span><span class="v mono">github.com/deepseek-ai/deepseek-harness</span></div>
+    </div>
+
+    <div class="card">
+      <h3>环境预检</h3>
+      <p class="sub">构建需要本机具备完整工具链，预检通过才允许开始</p>
+      <ul class="checks" id="env">
+        <li><span class="dot fail"></span><div class="ci"><div class="n">磁盘空间</div><div class="d">D: 仅剩 13.7 GB，构建需 ≥ 15 GB</div><div class="fix">需你手动清理；删到回收站不释放空间，需清空回收站</div></div><span class="badge fail">阻断</span></li>
+        <li><span class="dot warn"></span><div class="ci"><div class="n">Windows SDK</div><div class="d">最高 10.0.19041.0，需 GDI+ 兼容补丁</div><div class="fix">建议装 10.0.20348.0（VS2019 支持的最后一个）可免补丁</div></div><span class="badge warn">仅指引</span></li>
+        <li><span class="dot warn"></span><div class="ci"><div class="n">管理员权限</div><div class="d">当前为普通用户</div><div class="fix">仅影响「安装 VS/SDK」，构建本身不需要</div></div><span class="badge warn">仅指引</span></li>
+        <li id="env-envfile"><span class="dot warn"></span><div class="ci"><div class="n">.env.windows</div><div class="d">不存在，构建配置缺失</div><div class="fix">可由工具自动生成</div></div><button class="btn ghost sm" id="fix-env">自动修复</button></li>
+        <li><span class="dot ok"></span><div class="ci"><div class="n">Node.js / pnpm</div><div class="d">v22.22.2 · 11.7.0</div></div><span class="badge ok">通过</span></li>
+        <li><span class="dot ok"></span><div class="ci"><div class="n">Visual Studio C++ 工具链</div><div class="d">2019 Community 16.11.53</div></div><span class="badge ok">通过</span></li>
+        <li><span class="dot ok"></span><div class="ci"><div class="n">源码工作区</div><div class="d">D:\codes\deepseek-harness</div></div><span class="badge ok">通过</span></li>
+        <li><span class="dot ok"></span><div class="ci"><div class="n">其他</div><div class="d">git · node_modules · pnpm store · 代理 17890 · tar</div></div><span class="badge ok">通过</span></li>
+      </ul>
+      <div class="hint">通过 5 · 警告 3 · 阻断 1 —— <b>存在阻断项，请先处理磁盘空间</b></div>
+    </div>
+
+    <div class="card">
+      <h3>兼容性校验</h3>
+      <p class="sub">拉完源码后自动比对，确认工具与官方最新源码仍然匹配</p>
+      <ul class="checks">
+        <li><span class="dot ok"></span><div class="ci"><div class="n">7 项锚点校验通过</div><div class="d">window-frame.cpp · ipc.ts · preload-app.ts · electron-builder-config.mjs · …</div></div><span class="badge ok">通过</span></li>
+        <li><span class="dot fail"></span><div class="ci"><div class="n">main.ts — shell 协议分支锚点失配</div><div class="d">上游可能重构了 protocol.handle 区域，无法自动判断</div><div class="fix">已生成诊断包，可导出交给 AI 处理</div></div><span class="badge fail">阻断</span></li>
+      </ul>
+      <details>
+        <summary>查看诊断包（可直接交给 AI）</summary>
+<pre>## 兼容性校验失败：1 项
+
+### ✗ main.ts — shell 协议分支锚点失配
+
+- 文件：apps/desktop/src/main.ts
+- 期望：protocol.handle(SCHEME) 区域内存在 hostname === 'shell' 分支
+- 实际：区域内未找到该判断，且 anchor 也不匹配
+- 影响：点「检查更新」会盖一层空白遮罩，界面发白、点不动
+
+- 上游本次改动（git diff 摘要）：
+    - if (url.hostname === 'app') {
+    + const host = url.hostname
+    + if (host === 'app' || host === 'shell') {
+
+- 相关上下文（第 540-575 行）：
+    protocol.handle(SCHEME, async request => {
+      const url = new URL(request.url)
+      /* ... 此处结构已变化 ... */
+    })
+
+- 建议：确认上游是否已用其他方式处理 shell host。
+        若是 → 调整本工具校验条件后跳过；
+        若否 → 手工补回分支（详见 README §3.3）。</pre>
+      </details>
+    </div>
+
+    <div class="actions">
+      <button class="btn ghost" id="l-recheck">重新预检</button>
+      <button class="btn primary" id="l-build">开始构建</button>
+    </div>
+    <div class="hint">构建约 30~60 分钟，可后台进行；安装会在最后一步单独确认。</div>
+
+    <div class="card" id="l-prog" style="display:none;margin-top:14px">
+      <h3 id="l-prog-h">正在构建…</h3>
+      <div class="bar"><i id="l-bar"></i></div>
+      <div class="phase"><span id="l-p1">准备</span><span id="l-p2">0%</span></div>
+      <div class="log" id="l-log"></div>
+    </div>
+  </div>
+
+  <p class="note">UI 草案 v2 · 官方版本数据源已实测（npm dist-tags）· 版本号与预检结果为演示数据</p>
+</div>
+
+<script>
+const modes = document.querySelectorAll('.mode')
+const panes = { shared: document.getElementById('pane-shared'), local: document.getElementById('pane-local') }
+function selectMode(m){
+  modes.forEach(x => x.classList.toggle('on', x.dataset.mode === m))
+  panes.shared.classList.toggle('on', m === 'shared')
+  panes.local.classList.toggle('on', m === 'local')
+}
+modes.forEach(b => b.addEventListener('click', () => selectMode(b.dataset.mode)))
+
+function put(el, text, cls){
+  const d = document.createElement('div')
+  if (cls) d.className = cls
+  d.textContent = text
+  el.appendChild(d); el.scrollTop = el.scrollHeight
+}
+
+/* 官方版本检查 */
+const oCheck = document.getElementById('o-check')
+oCheck.addEventListener('click', () => {
+  oCheck.disabled = true
+  oCheck.textContent = '检查中…'
+  setTimeout(() => {
+    oCheck.disabled = false
+    oCheck.textContent = '检查'
+    const p = document.getElementById('o-next-pill')
+    p.textContent = '有更新'; p.className = 'pill new'
+  }, 800)
+})
+
+/* 方式一 */
+const sLog = document.getElementById('s-log'), sBar = document.getElementById('s-bar')
+const sProg = document.getElementById('s-prog'), sPH = document.getElementById('s-prog-h')
+const sP1 = document.getElementById('s-p1'), sP2 = document.getElementById('s-p2')
+const sInstall = document.getElementById('s-install')
+
+document.getElementById('s-golocal').addEventListener('click', () => selectMode('local'))
+
+sInstall.addEventListener('click', () => {
+  sProg.style.display = 'block'
+  sInstall.disabled = true
+  sLog.innerHTML = ''
+  sPH.textContent = '正在下载 0.1.7-alpha.2'
+  let p = 0
+  put(sLog, 'GET …/nightly.yml → 解析成功，通道 nightly', 'g')
+  const t = setInterval(() => {
+    p = Math.min(100, p + 12 + Math.random() * 14)
+    sBar.style.width = p + '%'
+    sP1.textContent = p < 100 ? '下载中' : '校验中'
+    sP2.textContent = Math.floor(p) + '%'
+    if (p >= 100){
+      clearInterval(t)
+      put(sLog, '下载完成 · sha512 校验通过', 'g')
+      put(sLog, '就绪：将停止运行中的任务 → 退出 → 安装 → 重启', 'g')
+      sPH.textContent = '可以安装'
+      sP1.textContent = '等待确认'; sP2.textContent = ''
+      sInstall.textContent = '安装并重启'
+      sInstall.disabled = false
+      sInstall.onclick = () => {
+        sPH.textContent = '正在安装…'
+        sP1.textContent = '应用将退出，安装器接管'
+        put(sLog, 'quitAndInstall(true, true)', 'y')
+      }
+    }
+  }, 260)
+})
+
+/* 方式二 */
+const lBar = document.getElementById('l-bar'), lProg = document.getElementById('l-prog')
+const lPH = document.getElementById('l-prog-h'), lP1 = document.getElementById('l-p1')
+const lP2 = document.getElementById('l-p2'), lLog = document.getElementById('l-log')
+const lBuild = document.getElementById('l-build')
+
+document.getElementById('fix-env').addEventListener('click', e => {
+  const li = document.getElementById('env-envfile')
+  li.querySelector('.dot').className = 'dot ok'
+  const d = li.querySelector('.d'); d.textContent = '已生成（通道 production）'
+  li.querySelector('.fix').remove()
+  const b = document.createElement('span'); b.className = 'badge ok'; b.textContent = '已修复'
+  e.target.replaceWith(b)
+})
+
+document.getElementById('l-recheck').addEventListener('click', e => {
+  e.target.disabled = true; e.target.textContent = '预检中…'
+  setTimeout(() => { e.target.disabled = false; e.target.textContent = '重新预检' }, 900)
+})
+
+const stages = [
+  [12, '校验环境与依赖', '构建前准备：SDK 补丁 / 清残留 / 清坏链接', 'g'],
+  [30, '安装依赖', 'pnpm install --force（首次较慢）', ''],
+  [58, '编译主进程与渲染进程', 'tsc -b · tsdown', ''],
+  [76, '打包未签名安装包', 'electron-builder --win --x64', ''],
+  [90, '生成更新 feed', '产出 nightly.yml 与安装包', ''],
+  [100, '构建完成', '可进入安装环节', 'g']
+]
+
+lBuild.addEventListener('click', () => {
+  lProg.style.display = 'block'
+  lBuild.disabled = true
+  lLog.innerHTML = ''
+  let i = 0
+  const step = () => {
+    if (i >= stages.length){
+      lPH.textContent = '构建完成 · 0.1.7-rc.1'
+      lP1.textContent = '等待安装确认'
+      lBuild.textContent = '安装并重启'
+      lBuild.disabled = false
+      lBuild.onclick = () => {
+        lPH.textContent = '正在安装…'
+        lP1.textContent = '应用将退出，安装器接管'
+        put(lLog, 'quitAndInstall(true, true)', 'y')
+      }
+      return
+    }
+    const [pct, name, detail, cls] = stages[i++]
+    lBar.style.width = pct + '%'
+    lP1.textContent = name; lP2.textContent = pct + '%'
+    lPH.textContent = '正在构建…'
+    put(lLog, '[' + String(pct).padStart(3) + '%] ' + detail, cls)
+    setTimeout(step, 700)
+  }
+  step()
+})
+</script>
+</body>
+</html>

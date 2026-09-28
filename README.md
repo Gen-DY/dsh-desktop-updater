@@ -1,5 +1,27 @@
 # dsh-desktop-updater
 
+> ## ⚠️ 项目状态：方式一已退役（2026-09-28）
+>
+> **官方已有生产桌面端安装包，方式一（自建 feed 分发）不再需要。**
+>
+> 官方产物已上生产 CDN（`https://download.deepseek.com/dsh-desk/feeds/win-x64/nightly.yml`）：
+>
+> | 项 | 实测值 |
+> |---|---|
+> | 版本 | `0.1.7-rc.2`（npm 上同样是 `latest`） |
+> | 签名 | **EV 代码签名**（Hangzhou DeepSeek）→ 安装不弹 SmartScreen |
+> | 速度 | CDN 直连 **17.7 MB/s** |
+> | 更新能力 | **安装包自带 `app-update.yml`**，指向官方 feed —— 装完即有自动更新 |
+>
+> 而且官方包的 `app-update.yml` 带 `publisherName`（签名校验），
+> **会拒绝我们的 unsigned 自建包** —— 自建分发这条路技术上已走不通。
+>
+> **本仓库现在的定位：本地构建工具。** 用途变为「想改代码 / 内网部署 / 固定版本 /
+> 构建可审计的版本」。真正有价值的部分是**环境预检**、**构建补丁的幂等托管**、
+> **兼容性校验**——而不是分发。
+>
+> 详见 [docs/research/评估-官方安装包实测.md](docs/research/评估-官方安装包实测.md)。
+
 给 **DeepSeek Harness 桌面端**（`deepseek-ai/deepseek-harness`）做**双模式更新**的工具集，
 同时作为更新包的分发点（feed 托管在本仓库的 Release）。
 
@@ -8,7 +30,7 @@
 
 ---
 
-## 两个更新方式
+## 两个更新方式（⚠️ 方式一已退役，见上方项目状态）
 
 用户自己选，界面显式分流：
 
@@ -84,6 +106,7 @@ dsh-desktop-updater/
     ├── 发布Release.md             产物如何发到 GitHub Release（方式一）
     ├── design/总方案.md           架构、界面信息结构、实施计划
     ├── design/内核改动清单.md      方式二的精确 diff 与校验锚点
+    ├── design/更新面板-demo.html   界面 demo（浏览器直接打开可交互）
     └── research/                 前期可行性调研（含源码级证据）
 ```
 
